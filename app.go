@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	redis "github.com/go-redis/redis/v8"
 	fiber "github.com/gofiber/fiber/v2"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"net/http"
 	"os"
@@ -17,19 +17,22 @@ import (
 
 var ctx = context.Background()
 var db *gorm.DB
-
+var err error
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
-	db, _ = gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
-
+	if os.Getenv("ENGINE") == "mysql" {
+		db, err = gorm.Open(mysql.Open(os.Getenv("MYSQL_DSN")), &gorm.Config{})
+		if (err != nil) {
+			panic("db conn failed")
+		}
+	} else {
+		db, err = gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+		if (err != nil) {
+			panic("sqlite something went wrong")
+		}
+	}
+	
 	db.AutoMigrate(&HealthCheckHost{})
-	/**db.Create(&HealthCheckHost{
-		Url: "https://googlexxxxxxxxxxxxxxxxxxxxxxxx.com",
-		Webhook: "http://localhost:3000/webhook",
-		WaitTime: 3,
-	})*/
-
-	fmt.Println("sup bitch")
 }
 
 func main() {
