@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+    db:
+        image: redis
+    cloudhealth:
+        build: .
+        environment:
+            REDIS_HOST: redis:6479

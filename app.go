@@ -21,7 +21,7 @@ func init() {
 
 	json.Unmarshal(value, &config)
 
-	
+	fmt.Println("HELLO")
 }
 
 func main() {
@@ -32,6 +32,7 @@ func main() {
 				Password: os.Getenv("REDIS_PASSWORD"),
 				DB: 0,
 			})
+			fmt.Println(redisClient)
 			for {
 				_, err := redisClient.Get(ctx, hostinfo.Url).Result()
 				if (err == nil) {
