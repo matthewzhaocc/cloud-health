@@ -16,6 +16,7 @@ import (
 
 var config CloudHealthConfiguration
 var ctx = context.Background()
+
 func init() {
 	configFile, err := filepath.Abs("./config.json")
 	if err != nil {
@@ -34,37 +35,40 @@ func init() {
 func main() {
 	waitChan := make(chan bool)
 	for _, host := range config.Hosts {
-		go func (hostinfo HealthCheckHost) {
+		go func(hostinfo HealthCheckHost) {
 			redisClient := redis.NewClient(&redis.Options{
-				Addr: os.Getenv("REDIS_ADDR"),
+				Addr:     os.Getenv("REDIS_ADDR"),
 				Password: os.Getenv("REDIS_PASSWORD"),
-				DB: 0,
+				DB:       0,
 			})
-			fmt.Println(redisClient)
 			for {
 				_, err := redisClient.Get(ctx, hostinfo.Url).Result()
-				if err != nil {
+				if err == nil {
 					time.Sleep(time.Second * 1)
-					fmt.Println(err.Error())
 					continue
 				}
+				redisClient.Set(ctx, hostinfo.Url, "locked", time.Second*time.Duration(hostinfo.WaitTime))
 
-				redisClient.Set(ctx, hostinfo.Url, "locked", time.Second * 5)
 				resp, err := http.Get(hostinfo.Url)
 				if err != nil {
-					log.Printf("Error reaching HTTP endpoint: %s\n", err.Error())
-					_, err = http.Post(hostinfo.Webhook, "application/json", bytes.NewBuffer([]byte("{\"url\": \""+hostinfo.Url+"\"}")))
+					pl, _ := json.Marshal(HealthCheckFailResponse{
+						Url:       hostinfo.Url,
+						Timestamp: time.Now().String(),
+					})
+					_, err = http.Post(hostinfo.Webhook, "application/json", bytes.NewBuffer(pl))
 					if err != nil {
 						log.Printf("Error calling webhook %s: %s\n", hostinfo.Webhook, err.Error())
-						continue
 					}
 					continue
 				}
 
 				if resp.StatusCode != 200 {
-					_, err = http.Post(hostinfo.Webhook, "application/json", bytes.NewBuffer([]byte("{\"url\": \""+hostinfo.Url+"\"}")))
+					pl, _ := json.Marshal(HealthCheckFailResponse{
+						Url:       hostinfo.Url,
+						Timestamp: time.Now().String(),
+					})
+					_, err = http.Post(hostinfo.Webhook, "application/json", bytes.NewBuffer(pl))
 					if err != nil {
-						log.Printf("Invalid response code: %s", resp.Status)
 						log.Printf("Error calling webhook %s: %s\n", hostinfo.Webhook, err.Error())
 					}
 					continue
@@ -72,7 +76,7 @@ func main() {
 			}
 		}(host)
 	}
-	<- waitChan
+	<-waitChan
 }
 
 type CloudHealthConfiguration struct {
@@ -80,6 +84,12 @@ type CloudHealthConfiguration struct {
 }
 
 type HealthCheckHost struct {
-	Url string `json:"hostname"`
-	Webhook string `json:"onFailWebhook"`
+	Url      string `json:"hostname"`
+	Webhook  string `json:"onFailWebhook"`
+	WaitTime int    `json:"waitTime"`
+}
+
+type HealthCheckFailResponse struct {
+	Url       string `json:"hostname"`
+	Timestamp string `json:"timestamp"`
 }
