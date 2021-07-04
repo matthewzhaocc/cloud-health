@@ -7,23 +7,26 @@ import (
 	"fmt"
 	redis "github.com/go-redis/redis/v8"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
+	log "github.com/sirupsen/logrus"
 )
 
 var config CloudHealthConfiguration
 var ctx = context.Background()
 
 func init() {
+	log.SetFormatter(&log.JSONFormatter{})
 	configFile, err := filepath.Abs("./config.json")
 	if err != nil {
 		panic(err.Error())
 	}
 	value, err := ioutil.ReadFile(configFile)
-
+	if err != nil {
+		panic(err.Error())
+	}
 	err = json.Unmarshal(value, &config)
 	if err != nil {
 		panic(err.Error())

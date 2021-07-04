@@ -2,7 +2,7 @@
     "hosts": [
         {
             "hostname": "https://google13fdnjbvfdbdbnd.com",
-            "onFailWebhook": "http://10.0.0.192:3000",
+            "onFailWebhook": "http://localhost:3000/webhook",
             "waitTime": 3
         }
     ]
