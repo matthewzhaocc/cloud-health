@@ -1,0 +1,41 @@
+openapi: '3.0.2'
+info:
+  title: Cloud-Health
+  version: '0.0.1'
+servers:
+  - url: https://api.cloud-health.matthew-cloud.com/
+paths:
+  /new:
+    post:
+      summary: New endpoint to perform synthetics against
+      requestBody:
+        description: The parameters for new cloud-health
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/new'
+      responses:
+        '200':
+          description: OK
+components:  
+  schemas:
+    new:
+      type: object
+      required:
+        - hostname
+        - onFailWebhook
+        - waitTime
+      properties:        
+        hostname:
+          type: string
+          description: the hostname to hit
+          example: https://google.com
+        onFailWebhook:
+          type: string
+          description: The webhook to send to when a synthetic fails
+          example: https://localhost:3000/webhook
+        waitTime:
+          type: integer
+          description: The interval to check the synthetic hostname
+          example: 3
